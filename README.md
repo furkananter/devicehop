@@ -10,8 +10,8 @@ Logitech, MX Keys and MX Master are trademarks of their respective owners.
 
 ## Status
 
-Early. Verified on macOS with an MX Keys Mini and an MX Master 4 (listing hosts
-and switching both to another host). **Linux support has not yet been built or
+Early. Verified on macOS with an MX Keys Mini and an MX Master 4 (listing hosts,
+switching both to another host, and follow mode). **Linux support has not yet been built or
 run on hardware.** Expect rough edges and please report what you find.
 
 ## Supported setup
@@ -87,7 +87,7 @@ nodes only.
 
 ## Follow mode
 
-**Experimental and not yet verified on hardware.**
+**Experimental.** Verified on macOS (a mouse followed a keyboard that left with its Easy-Switch key); not yet run on Linux.
 
 ```sh
 devicehop follow office-pc        # same target forms as `switch`
