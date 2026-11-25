@@ -1,0 +1,11 @@
+# devicehop: let the logged-in seat user talk to Logitech Bluetooth devices.
+#
+# This grants access (via the "uaccess" tag, i.e. an ACL for the user who is
+# currently logged in at the seat) to hidraw nodes of Logitech devices that are
+# connected over Bluetooth ONLY. KERNELS=="0005:046D:*" matches the parent HID
+# device whose bus is 0005 (Bluetooth) and vendor is 046D (Logitech); USB
+# devices and receivers are not affected.
+#
+# The file name must sort before 73-seat-late.rules, because uaccess tags are
+# applied by 73-seat-late.rules. The "70-" prefix takes care of that.
+SUBSYSTEM=="hidraw", KERNELS=="0005:046D:*", TAG+="uaccess"

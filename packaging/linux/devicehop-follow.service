@@ -1,0 +1,19 @@
+# Untested template. Install:
+#   mkdir -p ~/.config/systemd/user
+#   cp devicehop-follow.service ~/.config/systemd/user/
+#   (edit REPLACE_WITH_TARGET: a host number, a host name, or name=N selectors)
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now devicehop-follow
+[Unit]
+Description=devicehop follow mode (move Logitech devices along with one another)
+
+[Service]
+ExecStart=%h/.cargo/bin/devicehop follow REPLACE_WITH_TARGET
+Restart=on-failure
+RestartSec=5
+# The kernel refuses internet sockets for this service (no network, ever).
+NoNewPrivileges=yes
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,45 @@
+DeviceHop Proprietary Licence
+
+Copyright (c) 2026 Furkan. All rights reserved.
+
+DeviceHop, including its source code, binaries, name, icon and documentation
+(the "Software"), is the property of the copyright holder. It is NOT open
+source software.
+
+1. Permitted without further permission
+   You may read the source code for the sole purpose of reviewing what the
+   Software does (for example, auditing its security and privacy behaviour).
+
+2. Not permitted without prior written permission of the copyright holder
+   You may not, in whole or in part:
+   a. copy, reproduce, mirror or redistribute the Software;
+   b. modify it, translate it, or create derivative works from it;
+   c. compile, install, run or otherwise use it;
+   d. sell, rent, sublicense or offer it as a service;
+   e. use its source code, in any form, in another product or project;
+   f. use the DeviceHop name or icon.
+
+3. Licensed copies
+   A copy you obtained from the copyright holder under a separate written or
+   purchased licence may be used as that licence allows. Where that licence
+   and this document disagree, that licence prevails for that copy.
+
+4. Contributions
+   Nothing sent to the copyright holder (issues, suggestions, patches) gives
+   the sender any right in the Software.
+
+5. Third-party components
+   The Software uses third-party components under their own licences, listed
+   in THIRD-PARTY-NOTICES.md. This licence does not restrict your rights in
+   those components.
+
+6. No warranty
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. TO THE EXTENT
+   PERMITTED BY LAW, THE COPYRIGHT HOLDER IS NOT LIABLE FOR ANY CLAIM, DAMAGES
+   OR OTHER LIABILITY ARISING FROM THE SOFTWARE OR ITS USE.
+
+To ask for permission, contact the copyright holder.
+
+DeviceHop is not affiliated with, endorsed by, or sponsored by Logitech.

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- DeviceHop app icon. 1024 canvas, 824 plate (100 px margin).
+     Mark: two host tiles; a trail arcs up from the vacated (outlined) host,
+     and the device (amber dot) is mid-hop toward the solid host. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="plate" x1="0" y1="100" x2="0" y2="924" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#262E3A"/>
+      <stop offset="1" stop-color="#12161D"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Plate -->
+  <rect x="100" y="100" width="824" height="824" rx="186" ry="186" fill="url(#plate)"/>
+
+  <!-- Host A: vacated (outline). Outer box 220..436 x 560..776 -->
+  <path fill="#F2F4F7" fill-rule="evenodd" d="M 274 560 H 382 A 54 54 0 0 1 436 614 V 722 A 54 54 0 0 1 382 776 H 274 A 54 54 0 0 1 220 722 V 614 A 54 54 0 0 1 274 560 Z
+           M 300 616 H 356 A 24 24 0 0 1 380 640 V 696 A 24 24 0 0 1 356 720 H 300 A 24 24 0 0 1 276 696 V 640 A 24 24 0 0 1 300 616 Z"/>
+
+  <!-- Host B: destination (solid). 588..804 x 560..776 -->
+  <rect x="588" y="560" width="216" height="216" rx="54" ry="54" fill="#F2F4F7"/>
+
+  <!-- Hop trail: circle centre (512,460) r 184, from 180deg over the top to 82deg -->
+  <path d="M 328 460 A 184 184 0 0 1 537.6 277.8" fill="none" stroke="#F2F4F7" stroke-width="68" stroke-linecap="round"/>
+
+  <!-- The device, on the same circle at 36deg -->
+  <circle cx="660.9" cy="351.8" r="64" fill="#FFB020"/>
+</svg>
