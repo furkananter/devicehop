@@ -32,8 +32,18 @@ if [ -f "$HERE/icon/MenuBarIcon.pdf" ]; then
 fi
 cp "$ROOT/LICENSE" "$ROOT/THIRD-PARTY-NOTICES.md" "$APP/Contents/Resources/"
 
-codesign --force --sign - "$APP/Contents/MacOS/devicehop-cli"
-codesign --force --sign - "$APP"
+# Signing identity. A real identity keeps the app's identity stable across
+# rebuilds, so macOS keeps the Input Monitoring grant; ad-hoc ("-") signing
+# makes macOS ask again after every rebuild. Override with DEVICEHOP_SIGN_ID.
+SIGN_ID="${DEVICEHOP_SIGN_ID:-}"
+if [ -z "$SIGN_ID" ]; then
+    SIGN_ID="$(security find-identity -v -p codesigning 2>/dev/null \
+        | sed -n 's/.*"\(Apple Development: [^"]*\)".*/\1/p' | head -n 1)"
+fi
+SIGN_ID="${SIGN_ID:--}"
+
+codesign --force --sign "$SIGN_ID" "$APP/Contents/MacOS/devicehop-cli"
+codesign --force --sign "$SIGN_ID" "$APP"
 codesign --verify --deep --strict "$APP"
 
 if [ "$install" -eq 1 ]; then

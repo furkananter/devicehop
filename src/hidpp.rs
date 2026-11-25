@@ -177,7 +177,12 @@ impl Device {
             }
             name.extend_from_slice(&chunk[..take]);
         }
-        Ok((paired, String::from_utf8_lossy(&name).trim_end_matches('\0').to_string()))
+        Ok((
+            paired,
+            String::from_utf8_lossy(&name)
+                .trim_end_matches('\0')
+                .to_string(),
+        ))
     }
 
     /// Lists the device's reprogrammable controls as (control id, task id, flags).
@@ -192,7 +197,11 @@ impl Device {
             if p.len() < 5 {
                 return Err(Error::Malformed("short getCidInfo payload"));
             }
-            out.push((u16::from_be_bytes([p[0], p[1]]), u16::from_be_bytes([p[2], p[3]]), p[4]));
+            out.push((
+                u16::from_be_bytes([p[0], p[1]]),
+                u16::from_be_bytes([p[2], p[3]]),
+                p[4],
+            ));
         }
         Ok(out)
     }
@@ -273,7 +282,13 @@ mod tests {
         let f = frame(&[0x11, 0xFF, 0xFF, 0x09, 0x0B, 0x01]);
         assert_eq!(classify_response(&f, 0x06, 0), Response::Unrelated);
         // wrong report id, too short
-        assert_eq!(classify_response(&[0x10, 0xFF, 0x06, 0x0B, 0], 0x06, 0), Response::Unrelated);
-        assert_eq!(classify_response(&[0x11, 0xFF], 0x06, 0), Response::Unrelated);
+        assert_eq!(
+            classify_response(&[0x10, 0xFF, 0x06, 0x0B, 0], 0x06, 0),
+            Response::Unrelated
+        );
+        assert_eq!(
+            classify_response(&[0x11, 0xFF], 0x06, 0),
+            Response::Unrelated
+        );
     }
 }

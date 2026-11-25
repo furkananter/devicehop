@@ -68,13 +68,13 @@ final class DataBox: @unchecked Sendable { var data = Data() }
 
 // MARK: - Parsing `list --porcelain`
 
-struct HostInfo: Sendable {
+struct HostInfo: Sendable, Equatable {
     var number: Int
     var paired: Bool
     var name: String
 }
 
-struct DeviceInfo: Sendable {
+struct DeviceInfo: Sendable, Equatable {
     var name: String
     var hostCount = 0
     var current = 0
@@ -106,7 +106,7 @@ func parsePorcelain(_ text: String) -> [DeviceInfo] {
     return devices
 }
 
-enum ListState: Sendable {
+enum ListState: Sendable, Equatable {
     case loading
     case failed(String)
     case devices([DeviceInfo])
@@ -219,7 +219,10 @@ final class AppController: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let menu = NSMenu()
     private let commands = DispatchQueue(label: "dev.devicehop.commands")
     private let follow = FollowSupervisor()
-    private var openToken = 0
+    private var refreshToken = 0
+    /// Last known device state: shown at once when the menu opens, then refreshed.
+    private var cached: ListState?
+    private var menuIsOpen = false
     private var signalSources: [DispatchSourceSignal] = []
 
     private var followTarget: String? {
@@ -255,6 +258,7 @@ final class AppController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Make the app show up in the Input Monitoring list.
         _ = IOHIDRequestAccess(kIOHIDRequestTypeListenEvent)
         registerHotKey()
+        refresh()
         installSignalHandlers()
         follow.set(target: followTarget)
         render(.loading)
@@ -278,15 +282,31 @@ final class AppController: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: Menu
 
     func menuWillOpen(_ menu: NSMenu) {
-        openToken &+= 1
-        let token = openToken
-        render(.loading)
-        commands.async {
+        menuIsOpen = true
+        render(cached ?? .loading)
+        refresh()
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        menuIsOpen = false
+    }
+
+    /// Asks the devices for their state in the background and updates the cache.
+    /// The open menu is redrawn only when something actually changed. Devices are
+    /// queried at launch, when the menu opens and after a switch, never on a timer.
+    private func refresh(after delay: TimeInterval = 0) {
+        refreshToken &+= 1
+        let token = refreshToken
+        commands.asyncAfter(deadline: .now() + delay) {
             let r = runHelper(["list", "--porcelain"], timeout: 20)
             let devices = parsePorcelain(r.out)
             let state: ListState = devices.isEmpty ? .failed(r.message) : .devices(devices)
             Task { @MainActor in
-                if AppController.shared.openToken == token { AppController.shared.render(state) }
+                let app = AppController.shared
+                guard app.refreshToken == token else { return }
+                let changed = app.cached != state
+                app.cached = state
+                if app.menuIsOpen && changed { app.render(state) }
             }
         }
     }
@@ -389,8 +409,10 @@ final class AppController: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func performSwitch(to name: String) {
         commands.async {
             let r = runHelper(["switch", name], timeout: 30)
-            if r.status != 0 {
-                Task { @MainActor in showAlert("Could not switch to “\(name)”", r.message) }
+            Task { @MainActor in
+                if r.status != 0 { showAlert("Could not switch to “\(name)”", r.message) }
+                // Devices that left take a moment to disappear from the system.
+                AppController.shared.refresh(after: 1.5)
             }
         }
     }

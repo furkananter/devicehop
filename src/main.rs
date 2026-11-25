@@ -49,7 +49,9 @@ enum Spec {
 enum Command {
     Help,
     Version,
-    List { porcelain: bool },
+    List {
+        porcelain: bool,
+    },
     /// Diagnostic: dump reprogrammable controls of every device.
     Controls,
     Switch(Spec),
@@ -67,7 +69,9 @@ fn parse_host(s: &str) -> Result<u8, String> {
 /// Parses a target (`<N>`, `<host-name>` or `name=N ...`) shared by `switch` and `follow`.
 fn parse_spec(rest: &[String], cmd: &str) -> Result<Spec, String> {
     if rest.is_empty() {
-        return Err(format!("`{cmd}` needs a host number, a host name or name=N selectors"));
+        return Err(format!(
+            "`{cmd}` needs a host number, a host name or name=N selectors"
+        ));
     }
     if !rest.iter().any(|a| a.contains('=')) {
         if rest.len() > 1 {
@@ -83,8 +87,9 @@ fn parse_spec(rest: &[String], cmd: &str) -> Result<Spec, String> {
     }
     let mut sel = Vec::new();
     for a in rest {
-        let (name, n) =
-            a.split_once('=').ok_or_else(|| format!("`{a}` is not of the form name=N"))?;
+        let (name, n) = a
+            .split_once('=')
+            .ok_or_else(|| format!("`{a}` is not of the form name=N"))?;
         if name.is_empty() {
             return Err(format!("empty device name in `{a}`"));
         }
@@ -162,7 +167,9 @@ fn target_for_name(name: &str, spec: &Spec) -> Result<Option<u8>, String> {
             for (needle, n) in sel {
                 if lower.contains(&needle.to_lowercase()) {
                     if hit.is_some() {
-                        return Err(format!("device `{name}` is matched by more than one selector"));
+                        return Err(format!(
+                            "device `{name}` is matched by more than one selector"
+                        ));
                     }
                     hit = Some(*n);
                 }
@@ -198,7 +205,10 @@ fn find_devices(api: &HidApi) -> Vec<Found> {
         }
         out.push(Found {
             path: info.path().to_owned(),
-            name: info.product_string().unwrap_or("Unknown Logitech device").to_string(),
+            name: info
+                .product_string()
+                .unwrap_or("Unknown Logitech device")
+                .to_string(),
         });
     }
     out
@@ -240,7 +250,9 @@ fn open_device(api: &HidApi, f: &Found) -> Result<Device, String> {
 /// Opens a device and reads its Change Host feature index and host info.
 fn probe(api: &HidApi, f: &Found) -> Result<(Device, u8, u8, u8), String> {
     let dev = open_device(api, f)?;
-    let idx = dev.feature_index(FEATURE_CHANGE_HOST).map_err(|e| e.to_string())?;
+    let idx = dev
+        .feature_index(FEATURE_CHANGE_HOST)
+        .map_err(|e| e.to_string())?;
     let (count, cur) = dev.host_info(idx).map_err(|e| e.to_string())?;
     Ok((dev, idx, count, cur))
 }
@@ -264,7 +276,10 @@ fn host_by_name(dev: &Device, count: u8, want: &str) -> Result<u8, String> {
         [] => Err(format!("no paired host is named like `{want}`")),
         many => Err(format!(
             "`{want}` matches several hosts ({}); use host numbers instead",
-            many.iter().map(|(n, name)| format!("{n}: \"{name}\"")).collect::<Vec<_>>().join(", ")
+            many.iter()
+                .map(|(n, name)| format!("{n}: \"{name}\""))
+                .collect::<Vec<_>>()
+                .join(", ")
         )),
     }
 }
@@ -318,25 +333,44 @@ fn cmd_list(porcelain: bool) -> u8 {
     for f in &devices {
         match probe(&api, f) {
             Ok((dev, _, count, cur)) if porcelain => {
-                println!("device\t{}\t{}\t{}", tsv(&f.name), count, u16::from(cur) + 1);
+                println!(
+                    "device\t{}\t{}\t{}",
+                    tsv(&f.name),
+                    count,
+                    u16::from(cur) + 1
+                );
                 if let Ok(hi) = dev.feature_index(FEATURE_HOSTS_INFO) {
                     for h in 0..count {
                         if let Ok((paired, name)) = dev.host_detail(hi, h) {
-                            println!("host\t{}\t{}\t{}", u16::from(h) + 1, u8::from(paired), tsv(&name));
+                            println!(
+                                "host\t{}\t{}\t{}",
+                                u16::from(h) + 1,
+                                u8::from(paired),
+                                tsv(&name)
+                            );
                         }
                     }
                 }
             }
             Err(e) if porcelain => println!("error\t{}\t{}", tsv(&f.name), tsv(&e)),
             Ok((dev, _, count, cur)) => {
-                println!("{}: {} hosts, current host {}", f.name, count, u16::from(cur) + 1);
+                println!(
+                    "{}: {} hosts, current host {}",
+                    f.name,
+                    count,
+                    u16::from(cur) + 1
+                );
                 // Best effort: per-host pairing state and name, if the device offers it.
                 if let Ok(hi) = dev.feature_index(FEATURE_HOSTS_INFO) {
                     for h in 0..count {
                         if let Ok((paired, name)) = dev.host_detail(hi, h) {
                             let state = if paired { "paired" } else { "empty" };
                             let mark = if h == cur { " (current)" } else { "" };
-                            let name = if name.is_empty() { String::new() } else { format!(" \"{name}\"") };
+                            let name = if name.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" \"{name}\"")
+                            };
                             println!("    host {}: {state}{name}{mark}", u16::from(h) + 1);
                         }
                     }
@@ -359,7 +393,9 @@ fn cmd_controls() -> u8 {
     for f in &find_devices(&api) {
         println!("{}:", f.name);
         let res = open_device(&api, f).and_then(|dev| {
-            let idx = dev.feature_index(FEATURE_REPROG_CONTROLS).map_err(|e| e.to_string())?;
+            let idx = dev
+                .feature_index(FEATURE_REPROG_CONTROLS)
+                .map_err(|e| e.to_string())?;
             dev.controls(idx).map_err(|e| e.to_string())
         });
         match res {
@@ -374,7 +410,6 @@ fn cmd_controls() -> u8 {
     }
     0
 }
-
 
 fn cmd_switch(spec: &Spec) -> u8 {
     let api = match new_api() {
@@ -414,7 +449,10 @@ fn cmd_switch(spec: &Spec) -> u8 {
                     }
                 };
                 if n > count {
-                    eprintln!("{}: host {} is out of range (device has {} hosts)", f.name, n, count);
+                    eprintln!(
+                        "{}: host {} is out of range (device has {} hosts)",
+                        f.name, n, count
+                    );
                     failed = true;
                 } else {
                     ready.push((f, dev, idx, n, cur));
@@ -476,7 +514,9 @@ fn follow_departure(api: &mut HidApi, spec: &Spec) -> Vec<CString> {
     let mut ready = Vec::new();
     for f in &here {
         // A device that does not answer is on its way out too; leave it alone.
-        let Ok((dev, idx, count, cur)) = probe(api, f) else { continue };
+        let Ok((dev, idx, count, cur)) = probe(api, f) else {
+            continue;
+        };
         ready.push((f, dev, idx, count, cur));
     }
     // Nothing answers: Bluetooth is off or the system is going to sleep.
@@ -496,7 +536,10 @@ fn follow_departure(api: &mut HidApi, spec: &Spec) -> Vec<CString> {
             continue;
         }
         if n == 0 || n > *count {
-            say(&format!("{}: host {n} is out of range (device has {count} hosts)", f.name));
+            say(&format!(
+                "{}: host {n} is out of range (device has {count} hosts)",
+                f.name
+            ));
             continue;
         }
         let _ = dev.set_host(*idx, n - 1);
@@ -522,8 +565,10 @@ fn cmd_follow(spec: &Spec) -> u8 {
             return 1;
         }
     };
-    say("follow: when one device is switched away with its Easy-Switch key, \
-         the other devices follow to the target. Press Ctrl-C to stop.");
+    say(
+        "follow: when one device is switched away with its Easy-Switch key, \
+         the other devices follow to the target. Press Ctrl-C to stop.",
+    );
     // Paths and names of the devices seen on the previous poll. Presence is
     // read from the system's device list; no device is opened while waiting.
     let mut known: Vec<(CString, String)> = Vec::new();
@@ -583,7 +628,10 @@ mod tests {
 
     #[test]
     fn parses_basic() {
-        assert_eq!(parse_args(&a(&["list"])), Ok(Command::List { porcelain: false }));
+        assert_eq!(
+            parse_args(&a(&["list"])),
+            Ok(Command::List { porcelain: false })
+        );
         assert_eq!(
             parse_args(&a(&["list", "--porcelain"])),
             Ok(Command::List { porcelain: true })
@@ -592,7 +640,10 @@ mod tests {
         assert_eq!(tsv("a\tb\nc"), "a b c");
         assert_eq!(parse_args(&a(&["-h"])), Ok(Command::Help));
         assert_eq!(parse_args(&a(&["--version"])), Ok(Command::Version));
-        assert_eq!(parse_args(&a(&["switch", "2"])), Ok(Command::Switch(Spec::All(2))));
+        assert_eq!(
+            parse_args(&a(&["switch", "2"])),
+            Ok(Command::Switch(Spec::All(2)))
+        );
     }
 
     #[test]
@@ -611,7 +662,10 @@ mod tests {
         assert!(parse_args(&a(&[])).is_err());
         assert!(parse_args(&a(&["switch"])).is_err());
         assert!(parse_args(&a(&["switch", "0"])).is_err());
-        assert_eq!(parse_args(&a(&["switch", "abc"])), Ok(Command::Switch(Spec::ByName("abc".into()))));
+        assert_eq!(
+            parse_args(&a(&["switch", "abc"])),
+            Ok(Command::Switch(Spec::ByName("abc".into())))
+        );
         assert!(parse_args(&a(&["switch", ""])).is_err());
         assert!(parse_args(&a(&["switch", "keys=0"])).is_err());
         assert!(parse_args(&a(&["switch", "keys=x"])).is_err());
@@ -624,7 +678,10 @@ mod tests {
 
     #[test]
     fn parses_follow() {
-        assert_eq!(parse_args(&a(&["follow", "2"])), Ok(Command::Follow(Spec::All(2))));
+        assert_eq!(
+            parse_args(&a(&["follow", "2"])),
+            Ok(Command::Follow(Spec::All(2)))
+        );
         assert_eq!(
             parse_args(&a(&["follow", "office-pc"])),
             Ok(Command::Follow(Spec::ByName("office-pc".into())))
@@ -653,7 +710,10 @@ mod tests {
         let names = a(&["MX Keys Mini", "MX Master 4"]);
         let spec = Spec::PerDevice(vec![("KEYS".into(), 2)]);
         assert_eq!(resolve_targets(&names, &spec), Ok(vec![(0, 2)]));
-        assert_eq!(resolve_targets(&names, &Spec::All(1)), Ok(vec![(0, 1), (1, 1)]));
+        assert_eq!(
+            resolve_targets(&names, &Spec::All(1)),
+            Ok(vec![(0, 1), (1, 1)])
+        );
         let spec = Spec::PerDevice(vec![("keys".into(), 2), ("master".into(), 3)]);
         assert_eq!(resolve_targets(&names, &spec), Ok(vec![(0, 2), (1, 3)]));
         let spec = Spec::PerDevice(vec![("trackball".into(), 2)]);
