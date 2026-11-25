@@ -257,31 +257,45 @@ fn probe(api: &HidApi, f: &Found) -> Result<(Device, u8, u8, u8), String> {
     Ok((dev, idx, count, cur))
 }
 
-/// Finds the 1-based host whose friendly name contains `want` (case-insensitive).
-fn host_by_name(dev: &Device, count: u8, want: &str) -> Result<u8, String> {
-    let hi = dev
-        .feature_index(FEATURE_HOSTS_INFO)
-        .map_err(|e| format!("cannot look up hosts by name ({e}); use host numbers"))?;
+/// Picks the host for `want` among `(number, paired, name)` entries.
+///
+/// A single exact (case-insensitive) name match wins; otherwise the match is a
+/// case-insensitive substring. Several remaining matches are an error.
+fn select_host(hosts: &[(u8, bool, String)], want: &str) -> Result<u8, String> {
     let want = want.to_lowercase();
-    let mut hits = Vec::new();
-    for h in 0..count {
-        if let Ok((true, name)) = dev.host_detail(hi, h) {
-            if name.to_lowercase().contains(&want) {
-                hits.push((h + 1, name));
-            }
-        }
-    }
+    let paired = || hosts.iter().filter(|(_, paired, _)| *paired);
+    let exact: Vec<_> = paired()
+        .filter(|(_, _, name)| name.to_lowercase() == want)
+        .collect();
+    let hits = if exact.is_empty() {
+        paired()
+            .filter(|(_, _, name)| name.to_lowercase().contains(&want))
+            .collect()
+    } else {
+        exact
+    };
     match hits.as_slice() {
-        [(n, _)] => Ok(*n),
+        [(n, _, _)] => Ok(*n),
         [] => Err(format!("no paired host is named like `{want}`")),
         many => Err(format!(
             "`{want}` matches several hosts ({}); use host numbers instead",
             many.iter()
-                .map(|(n, name)| format!("{n}: \"{name}\""))
+                .map(|(n, _, name)| format!("{n}: \"{name}\""))
                 .collect::<Vec<_>>()
                 .join(", ")
         )),
     }
+}
+
+/// Finds the 1-based host whose friendly name matches `want` (see `select_host`).
+fn host_by_name(dev: &Device, count: u8, want: &str) -> Result<u8, String> {
+    let hi = dev
+        .feature_index(FEATURE_HOSTS_INFO)
+        .map_err(|e| format!("cannot look up hosts by name ({e}); use host numbers"))?;
+    let hosts: Vec<(u8, bool, String)> = (0..count)
+        .filter_map(|h| dev.host_detail(hi, h).ok().map(|(p, n)| (h + 1, p, n)))
+        .collect();
+    select_host(&hosts, want)
 }
 
 /// Confirms a device left after the switch command, resending if it did not.
@@ -703,6 +717,29 @@ mod tests {
         assert_eq!(target_for_name("x", &Spec::All(3)), Ok(Some(3)));
         let spec = Spec::PerDevice(vec![("mx".into(), 2), ("keys".into(), 3)]);
         assert!(target_for_name("MX Keys Mini", &spec).is_err());
+    }
+
+    fn hosts(v: &[(u8, bool, &str)]) -> Vec<(u8, bool, String)> {
+        v.iter().map(|(n, p, s)| (*n, *p, s.to_string())).collect()
+    }
+
+    #[test]
+    fn host_selection() {
+        let h = hosts(&[(1, true, "Mac"), (2, true, "MacBook Pro"), (3, false, "")]);
+        // Exact match beats substring matches, case-insensitively.
+        assert_eq!(select_host(&h, "mac"), Ok(1));
+        assert_eq!(select_host(&h, "MACBOOK PRO"), Ok(2));
+        // No exact match: unique substring.
+        assert_eq!(select_host(&h, "book"), Ok(2));
+        // No exact match: several substring matches are an error.
+        assert!(select_host(&h, "m").unwrap_err().contains("several"));
+        // Unpaired hosts never match.
+        let h = hosts(&[(1, false, "Mac"), (2, true, "Office")]);
+        assert!(select_host(&h, "mac").is_err());
+        assert_eq!(select_host(&h, "office"), Ok(2));
+        // Two exact matches stay ambiguous.
+        let h = hosts(&[(1, true, "Mac"), (2, true, "mac")]);
+        assert!(select_host(&h, "mac").unwrap_err().contains("several"));
     }
 
     #[test]

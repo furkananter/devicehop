@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=DeviceHop
+Comment=Switch Logitech Bluetooth keyboards and mice between computers
+# install.sh fills in the install directory below: desktop files do not expand ~ or $HOME.
+Exec=@BINDIR@/devicehop-tray
+Icon=devicehop
+Terminal=false
+Categories=Utility;
+X-GNOME-Autostart-enabled=true

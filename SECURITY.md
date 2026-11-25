@@ -9,10 +9,11 @@ how you can check each claim in the source.
 - **No network.** There is no networking code in DeviceHop. It never connects
   to anything, has no telemetry, no update check and no account.
   *Check:* `grep -rn "std::net\|socket\|http\|URLSession" src/ macos/DeviceHop/` finds nothing, and
-  the only library dependency is `hidapi` (`cargo tree`).
+  the only library dependency of `devicehop` is `hidapi` (`cargo tree`).
 - **No data files.** The only things it writes are: in the macOS app, the one
-  preference "which computer to follow to"; and, if you run follow mode as a
-  background service, its status lines ("<device>: left", "followed to host N")
+  preference "which computer to follow to"; on Linux, the file
+  `~/.config/devicehop/follow-target` with that same one line; and, if you run
+  follow mode as a background service, its status lines ("<device>: left", "followed to host N")
   in the service log. Neither contains input from your devices.
 - **No root.** It runs as your user.
 - **No keystroke or pointer logging.** See the next section for the precise
@@ -65,11 +66,22 @@ isolation Wayland otherwise provides. The alternatives (running a root helper)
 have their own risks. If this trade-off is not acceptable on a machine, do not
 install the rule there.
 
+## The Linux tray
+
+`devicehop-tray` is a separate program (in `linux/devicehop-tray/`). It never
+opens a device: all device work is done by running the `devicehop` command line
+as a subprocess. It talks only to the D-Bus session bus (to show its icon and
+menu), opens no network connection, and needs no root. Its follow-mode choice
+is written to `~/.config/devicehop/follow-target` and applied with
+`systemctl --user`. Unlike `devicehop`, it has library dependencies (a D-Bus
+implementation; see `linux/devicehop-tray/Cargo.lock`).
+
 ## The Linux service
 
 The systemd user unit runs follow mode with `NoNewPrivileges=yes` and
 `RestrictAddressFamilies=AF_UNIX AF_NETLINK`, so the kernel itself refuses any
-internet socket, whatever the program tries to do.
+internet socket, whatever the program tries to do. It reads its target from
+`~/.config/devicehop/follow-target`.
 
 ## Limits
 

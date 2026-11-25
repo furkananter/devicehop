@@ -1,14 +1,25 @@
-# Untested template. Install:
-#   mkdir -p ~/.config/systemd/user
-#   cp devicehop-follow.service ~/.config/systemd/user/
-#   (edit REPLACE_WITH_TARGET: a host number, a host name, or name=N selectors)
-#   systemctl --user daemon-reload
-#   systemctl --user enable --now devicehop-follow
+# DeviceHop follow mode as a systemd user service. Installed by install.sh.
+#
+# The target is read from the file %E/devicehop/follow-target (%E is
+# $XDG_CONFIG_HOME, normally ~/.config) each time the service starts. The
+# tray's "Follow mode" menu writes that file and restarts the service; you can
+# also edit it by hand and run: systemctl --user restart devicehop-follow
+#
+# The file holds one line, in the forms `devicehop switch` accepts:
+#   - a host name, which may contain spaces:           Office PC
+#   - or name=N selectors separated by spaces:         keys=2 master=3
+# A line containing `=` is split on whitespace into separate arguments;
+# any other line is passed as one argument. An empty or missing file means
+# follow mode is off and the service does not start.
+#
+# systemd rewrites `$` and `%`, so the shell's `$` is written `$$` below.
 [Unit]
-Description=devicehop follow mode (move Logitech devices along with one another)
+Description=DeviceHop follow mode (devices follow each other on Easy-Switch)
+After=bluetooth.target
+ConditionFileNotEmpty=%E/devicehop/follow-target
 
 [Service]
-ExecStart=%h/.cargo/bin/devicehop follow REPLACE_WITH_TARGET
+ExecStart=/bin/sh -c 't=$$(cat "%E/devicehop/follow-target"); case "$$t" in *=*) exec "%h/.local/bin/devicehop" follow $$t;; *) exec "%h/.local/bin/devicehop" follow "$$t";; esac'
 Restart=on-failure
 RestartSec=5
 # The kernel refuses internet sockets for this service (no network, ever).

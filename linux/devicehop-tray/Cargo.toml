@@ -1,0 +1,12 @@
+[package]
+name = "devicehop-tray"
+version = "0.1.0"
+edition = "2024"
+license-file = "../../LICENSE"
+publish = false
+
+[dependencies]
+ksni = { version = "=0.3.7", default-features = false, features = ["async-io", "blocking"] }
+
+# Not part of any workspace: built on its own, with its own Cargo.lock.
+[workspace]
